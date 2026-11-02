@@ -1,0 +1,576 @@
+@font-face {
+  font-family: 'Noto Sans Bengali';
+  src: url('/fonts/NotoSansBengali-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Bengali';
+  src: url('/fonts/NotoSansBengali-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Bengali';
+  src: url('/fonts/NotoSansBengali-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Bengali';
+  src: url('/fonts/NotoSansBengali-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif Bengali';
+  src: url('/fonts/NotoSerifBengali-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Serif Bengali';
+  src: url('/fonts/NotoSerifBengali-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: 245 242 234;
+  --surface: 255 253 248;
+  --raised: 239 234 223;
+  --ink: 22 37 31;
+  --muted: 105 112 105;
+  --line: 220 214 201;
+  --primary: 15 90 72;
+  --primary-deep: 9 62 49;
+  --primary-soft: 224 238 232;
+  --accent: 177 101 48;
+  --accent-soft: 246 232 216;
+  --danger: 174 61 55;
+  --danger-soft: 249 231 228;
+  --sidebar: 12 54 44;
+  --sidebar-ink: 248 246 238;
+  --sidebar-muted: 166 188 178;
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: 15 22 19;
+  --surface: 23 33 29;
+  --raised: 31 45 39;
+  --ink: 238 242 237;
+  --muted: 156 169 161;
+  --line: 48 63 56;
+  --primary: 92 194 165;
+  --primary-deep: 78 173 146;
+  --primary-soft: 27 58 49;
+  --accent: 222 159 106;
+  --accent-soft: 63 44 28;
+  --danger: 239 133 125;
+  --danger-soft: 66 34 32;
+  --sidebar: 10 35 29;
+  --sidebar-ink: 248 246 238;
+  --sidebar-muted: 154 181 169;
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-line;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply m-0 min-h-screen bg-canvas font-sans text-ink antialiased;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection {
+    background: rgb(var(--primary) / 0.2);
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+  }
+  input[type='date'] {
+    color-scheme: light;
+  }
+  .dark input[type='date'] {
+    color-scheme: dark;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-line;
+    border: 2px solid rgb(var(--canvas));
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl2 border border-line bg-surface shadow-card;
+  }
+  .field {
+    @apply w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-muted/60 shadow-sm transition-colors;
+  }
+  .field:hover {
+    @apply border-muted/40;
+  }
+  .field:focus {
+    @apply border-primary outline-none ring-2 ring-primary/15;
+  }
+  .field-label {
+    @apply mb-1.5 block text-[13px] font-semibold text-ink;
+  }
+  .field-hint {
+    @apply mt-1.5 text-xs leading-relaxed text-muted;
+  }
+  .field-error {
+    @apply mt-1.5 text-xs font-medium text-danger;
+  }
+  .btn {
+    @apply inline-flex min-h-10 select-none items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn-primary {
+    @apply bg-primary text-white shadow-sm hover:bg-primary-deep;
+  }
+  .dark .btn-primary {
+    @apply text-[#08231c];
+  }
+  .btn-secondary {
+    @apply border-line bg-surface text-ink hover:border-muted/50 hover:bg-raised/70;
+  }
+  .btn-ghost {
+    @apply text-muted hover:bg-raised hover:text-ink;
+  }
+  .btn-danger {
+    @apply bg-danger text-white hover:brightness-95;
+  }
+  .btn-outline-danger {
+    @apply border-danger/30 bg-transparent text-danger hover:bg-danger-soft;
+  }
+  .icon-btn {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-raised hover:text-ink disabled:opacity-40;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-muted;
+  }
+  .nav-link {
+    @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium text-sidebar-muted transition-colors hover:bg-white/[0.07] hover:text-sidebar-ink;
+  }
+  .nav-link-active {
+    @apply bg-white/[0.11] font-semibold text-sidebar-ink;
+  }
+  .nav-link-active::before {
+    content: '';
+    @apply absolute -left-1 top-2.5 h-[calc(100%-20px)] w-[3px] rounded-full bg-[#d9a069];
+  }
+  .page-title {
+    @apply font-display text-2xl font-bold leading-tight tracking-tight text-ink sm:text-[28px];
+  }
+  .section-title {
+    @apply font-display text-lg font-bold tracking-tight text-ink sm:text-xl;
+  }
+  .overline {
+    @apply text-[11px] font-bold uppercase tracking-[0.18em] text-muted;
+  }
+  .money {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .table-head {
+    @apply bg-raised/70 text-[12px] font-bold uppercase tracking-wide text-muted;
+  }
+  .spreadsheet-input {
+    @apply w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-[14px] text-ink transition-colors placeholder:text-muted/40 hover:border-line focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/10;
+  }
+  .spreadsheet-cell {
+    @apply border-b border-line/80 px-2 py-1.5 align-middle;
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-raised;
+  }
+  .menu-item-danger {
+    @apply text-danger hover:bg-danger-soft;
+  }
+  .skeleton {
+    @apply animate-soft-pulse rounded-md bg-raised;
+  }
+  .kbd {
+    @apply rounded border border-line bg-raised px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted;
+  }
+}
+
+/* ---------- Bengali date field ---------- */
+.date-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+.date-field-boxed {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid rgb(var(--line));
+  border-radius: 0.5rem;
+  background: rgb(var(--surface));
+  padding: 0.55rem 0.8rem;
+  box-shadow: 0 1px 2px rgb(20 35 28 / 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.date-field-boxed:hover {
+  border-color: rgb(var(--muted) / 0.45);
+}
+.date-field-boxed:focus-within {
+  border-color: rgb(var(--primary));
+  box-shadow: 0 0 0 2px rgb(var(--primary) / 0.14);
+}
+.date-field-spreadsheet {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  padding: 0.35rem 0.5rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.date-field-spreadsheet:hover {
+  border-color: rgb(var(--line));
+}
+.date-field-spreadsheet:focus-within {
+  border-color: rgb(var(--primary));
+  background: rgb(var(--surface));
+  box-shadow: 0 0 0 2px rgb(var(--primary) / 0.1);
+}
+.date-field-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: rgb(var(--ink));
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.date-field-boxed .date-field-label {
+  font-size: 0.9rem;
+}
+.date-field[data-empty='true'] .date-field-label {
+  color: rgb(var(--muted) / 0.65);
+}
+.date-field-native {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  opacity: 0;
+}
+.date-field-native:disabled {
+  cursor: not-allowed;
+}
+.date-field:has(.date-field-native:focus-visible) {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
+.date-field-clear {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  height: 20px;
+  width: 20px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: rgb(var(--muted));
+  background: rgb(var(--raised));
+}
+.date-field-clear:hover {
+  color: rgb(var(--ink));
+}
+
+/* ---------- Responsive ledger table ---------- */
+@media (max-width: 1023px) {
+  .expense-table,
+  .expense-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .expense-table thead {
+    display: none;
+  }
+  .expense-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    background: rgb(var(--canvas));
+  }
+  .expense-table tr.expense-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    border: 1px solid rgb(var(--line));
+    border-radius: 12px;
+    background: rgb(var(--surface));
+    padding: 12px;
+    box-shadow: 0 1px 2px rgb(20 35 28 / 0.03);
+  }
+  .expense-table td.expense-cell {
+    display: block;
+    width: auto !important;
+    min-width: 0 !important;
+    border: 0;
+    padding: 0;
+  }
+  .expense-table td.expense-cell::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    color: rgb(var(--muted));
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .expense-table td.expense-description-cell {
+    grid-column: 1 / -1;
+  }
+  .expense-table .spreadsheet-input {
+    border-color: rgb(var(--line));
+    background: rgb(var(--surface));
+    padding: 7px 9px;
+  }
+  .expense-table .date-field-spreadsheet {
+    width: 100% !important;
+    border-color: rgb(var(--line));
+    background: rgb(var(--surface));
+    padding: 7px 9px;
+  }
+  .expense-table .spreadsheet-input:hover {
+    border-color: rgb(var(--muted) / 0.4);
+  }
+  .expense-table input[type='date'].expense-date-input {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* ---------- Voucher paper ---------- */
+.voucher-paper {
+  width: 148mm;
+  height: 210mm;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #111714;
+  font-family: 'Noto Sans Bengali', sans-serif;
+  padding: 15mm 14mm 13mm;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.voucher-paper::before {
+  content: '';
+  position: absolute;
+  inset: 7mm;
+  border: 0.4mm solid #17211d;
+  pointer-events: none;
+}
+.voucher-paper::after {
+  content: '';
+  position: absolute;
+  inset: 7.8mm;
+  border: 0.18mm solid #6a746e;
+  pointer-events: none;
+}
+.voucher-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 2mm 1mm;
+}
+.voucher-title {
+  font-family: 'Noto Serif Bengali', serif;
+  font-size: 9.4mm;
+  line-height: 1.2;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.06em;
+  margin: 1mm 0 8mm;
+}
+.voucher-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8mm;
+  font-size: 4.1mm;
+  line-height: 1.55;
+}
+.voucher-meta > div {
+  max-width: 48%;
+}
+.voucher-divider {
+  height: 0.32mm;
+  background: #17211d;
+  margin: 4.5mm 0 6mm;
+}
+.voucher-description-label {
+  font-size: 3.7mm;
+  font-weight: 600;
+  color: #4b5550;
+  margin-bottom: 2.5mm;
+}
+.voucher-description {
+  font-size: 4.4mm;
+  line-height: 1.8;
+  min-height: 30mm;
+  max-height: 82mm;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+.voucher-total {
+  margin-top: 7mm;
+  padding: 4mm 5mm;
+  border-top: 0.32mm solid #8b938e;
+  border-bottom: 0.32mm solid #8b938e;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6mm;
+  font-size: 4.5mm;
+}
+.voucher-total strong {
+  font-family: 'Noto Serif Bengali', serif;
+  font-size: 6.4mm;
+  line-height: 1.3;
+  text-align: right;
+}
+.voucher-signature {
+  margin-top: auto;
+  padding-top: 18mm;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.voucher-signature-line {
+  width: 56mm;
+  border-top: 0.3mm solid #17211d;
+}
+.voucher-signature-name {
+  width: 56mm;
+  text-align: center;
+  font-size: 4.1mm;
+  font-weight: 600;
+  margin-top: 2.5mm;
+  overflow-wrap: anywhere;
+}
+.voucher-signature-label {
+  width: 56mm;
+  text-align: center;
+  font-size: 3.45mm;
+  color: #505a55;
+  margin-top: 0.8mm;
+}
+
+.print-only {
+  position: fixed;
+  left: -3000px;
+  top: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.pdf-render-wrap {
+  position: fixed;
+  left: -2000px;
+  top: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@media print {
+  @page {
+    size: 148mm 210mm;
+    margin: 0;
+  }
+  html,
+  body {
+    width: 148mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  #root {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    z-index: auto !important;
+  }
+  .pdf-only {
+    display: none !important;
+  }
+  .voucher-paper {
+    width: 148mm !important;
+    height: 210mm !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    break-after: avoid;
+    page-break-after: avoid;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

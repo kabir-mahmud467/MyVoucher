@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="MyVoucher logo">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="20" x2="460" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#176b57"/>
+      <stop offset="1" stop-color="#0b3f33"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="180" y1="116" x2="342" y2="408" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fffdf6"/>
+      <stop offset="1" stop-color="#f1e8d6"/>
+    </linearGradient>
+    <filter id="shadow" x="120" y="80" width="300" height="380" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#05251d" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M78 380c78 52 188 69 356-2" fill="none" stroke="#2a7e68" stroke-width="2" opacity=".55"/>
+  <path d="M90 408c86 49 196 58 332-8" fill="none" stroke="#2a7e68" stroke-width="2" opacity=".3"/>
+  <g filter="url(#shadow)">
+    <path d="M164 112h184a20 20 0 0 1 20 20v212l-24 16-24-16-24 16-24-16-24 16-24-16-24 16V132a20 20 0 0 1 20-20Z" fill="url(#paper)"/>
+    <path d="M192 160h128" stroke="#17493d" stroke-width="14" stroke-linecap="round" opacity=".92"/>
+    <path d="M192 198h88" stroke="#b9b09d" stroke-width="10" stroke-linecap="round"/>
+    <path d="M192 232h112" stroke="#b9b09d" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="300" cy="310" r="52" fill="#b96f36"/>
+    <path d="M278 310l15 16 30-34" fill="none" stroke="#fff9ed" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
