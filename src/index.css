@@ -510,6 +510,156 @@
   margin-top: 0.8mm;
 }
 
+/* ---------- Manual month/year date entry ---------- */
+.manual-date-field {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 92px;
+  gap: 0.4rem;
+}
+.manual-date-day {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.manual-date-select {
+  min-width: 0;
+  cursor: pointer;
+}
+
+/* ---------- A4 travel voucher ---------- */
+.travel-voucher-paper {
+  width: 210mm;
+  height: 297mm;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #111714;
+  font-family: 'Noto Sans Bengali', sans-serif;
+  padding: 15mm 11mm 12mm;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.travel-voucher-paper::before {
+  content: '';
+  position: absolute;
+  inset: 6mm;
+  border: 0.4mm solid #17211d;
+  pointer-events: none;
+}
+.travel-voucher-paper::after {
+  content: '';
+  position: absolute;
+  inset: 6.8mm;
+  border: 0.18mm solid #6a746e;
+  pointer-events: none;
+}
+.travel-voucher-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 2mm 1mm;
+}
+.travel-voucher-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8mm;
+}
+.travel-voucher-brand {
+  font-size: 3mm;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #5a655f;
+}
+.travel-voucher-title {
+  font-family: 'Noto Serif Bengali', serif;
+  font-size: 7.4mm;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-top: 1mm;
+}
+.travel-voucher-meta {
+  text-align: right;
+  font-size: 3.7mm;
+  line-height: 1.7;
+}
+.travel-voucher-meta span {
+  color: #5a655f;
+}
+.travel-voucher-rule {
+  height: 0.35mm;
+  background: #17211d;
+  margin: 4mm 0 4.5mm;
+}
+.travel-voucher-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 2.72mm;
+  line-height: 1.45;
+}
+.travel-voucher-table th,
+.travel-voucher-table td {
+  border: 0.24mm solid #5d6862;
+  padding: 1.5mm 1.2mm;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.travel-voucher-table th {
+  background: #eef3ef;
+  font-weight: 700;
+  text-align: left;
+}
+.travel-voucher-table .col-serial { width: 7%; text-align: center; }
+.travel-voucher-table .col-date { width: 12%; }
+.travel-voucher-table .col-place { width: 13%; }
+.travel-voucher-table .col-number { width: 8%; text-align: right; }
+.travel-voucher-table .col-mode { width: 11%; }
+.travel-voucher-table .col-purpose { width: 19%; }
+.travel-voucher-table .col-total { width: 11%; text-align: right; font-weight: 600; }
+.travel-voucher-table tfoot td {
+  background: #f5f8f5;
+  font-weight: 700;
+  font-size: 3mm;
+}
+.travel-voucher-note {
+  margin-top: 4mm;
+  font-size: 3mm;
+  color: #4b5550;
+}
+.travel-voucher-signature {
+  margin-top: auto;
+  padding-top: 14mm;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.travel-voucher-signature-line {
+  width: 58mm;
+  border-top: 0.3mm solid #17211d;
+}
+.travel-voucher-signature-name {
+  width: 58mm;
+  text-align: center;
+  font-size: 3.9mm;
+  font-weight: 600;
+  margin-top: 2.5mm;
+  overflow-wrap: anywhere;
+}
+.travel-voucher-signature-label {
+  width: 58mm;
+  text-align: center;
+  font-size: 3.3mm;
+  color: #505a55;
+  margin-top: 0.8mm;
+}
+
 .print-only {
   position: fixed;
   left: -3000px;
@@ -528,12 +678,12 @@
 
 @media print {
   @page {
-    size: 148mm 210mm;
+    size: 297mm 210mm;
     margin: 0;
   }
   html,
   body {
-    width: 148mm !important;
+    width: 297mm !important;
     height: 210mm !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -559,6 +709,29 @@
     margin: 0 !important;
     break-after: avoid;
     page-break-after: avoid;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-sheet-landscape {
+    display: flex !important;
+    gap: 1mm;
+    width: 297mm;
+    height: 210mm;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .print-sheet-landscape .voucher-paper {
+    flex: 0 0 148mm;
+  }
+  .print-sheet-portrait {
+    width: 210mm;
+    height: 297mm;
+  }
+  .travel-voucher-paper {
+    width: 210mm !important;
+    height: 297mm !important;
+    box-shadow: none !important;
+    margin: 0 !important;
     break-inside: avoid;
     page-break-inside: avoid;
   }

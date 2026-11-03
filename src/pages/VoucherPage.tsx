@@ -12,25 +12,28 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Download,
+  FileSpreadsheet,
   FileText,
   LoaderCircle,
   Printer,
   TriangleAlert,
 } from 'lucide-react';
 import { db } from '../db/database';
+import type { Expense } from '../db/types';
 import { useProfile } from '../providers/ProfileProvider';
 import { useToast } from '../providers/ToastProvider';
 import { VoucherDocument } from '../components/vouchers/VoucherDocument';
+import { TravelVoucherDocument } from '../components/vouchers/TravelVoucherDocument';
 import { PageHeader } from '../components/ui/PageHeader';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
-import { downloadVoucherPdf } from '../lib/pdf';
-import { formatVoucherDate } from '../lib/dates';
+import { downloadVoucherPdf, printInLayout } from '../lib/pdf';
+import { formatDateBn, formatVoucherDate } from '../lib/dates';
 import { isNativeApp } from '../lib/native';
 
-function ScaledVoucher({ children }: { children: ReactNode }) {
+function ScaledSheet({ children }: { children: ReactNode }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
-  const [metrics, setMetrics] = useState({ width: 559, height: 794, scale: 1 });
+  const [metrics, setMetrics] = useState({ width: 0, height: 0, scale: 1 });
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -64,8 +67,12 @@ function ScaledVoucher({ children }: { children: ReactNode }) {
       <div className="mx-auto" style={{ width: metrics.width, height: metrics.height }}>
         <div
           ref={paperRef}
-          style={{ transform: `scale(${metrics.scale})`, transformOrigin: 'top left' }}
-          className="w-[148mm] shadow-[0_24px_70px_-24px_rgba(4,24,18,.55)]"
+          style={{
+            width: 'max-content',
+            transform: `scale(${metrics.scale})`,
+            transformOrigin: 'top left',
+          }}
+          className="shadow-[0_24px_70px_-24px_rgba(4,24,18,.55)]"
         >
           {children}
         </div>
@@ -84,52 +91,53 @@ export function VoucherPage() {
   const handledAction = useRef(false);
   const [pdfBusy, setPdfBusy] = useState(false);
 
-  const data = useLiveQuery(async () => {
-    if (!id) return null;
-    const expense = await db.expenses.get(id);
-    if (!expense) return null;
-    const category = await db.categories.get(expense.categoryId);
-    return { expense, category: category ?? null };
-  }, [id], undefined);
+  const data = useLiveQuery(
+    async () => {
+      if (!id) return null;
+      const expense = await db.expenses.get(id);
+      if (!expense) return null;
+      const category = (await db.categories.get(expense.categoryId)) ?? null;
+      const isTravel = Boolean(expense.travelDetails) || category?.kind === 'travel';
+
+      let travelExpenses: Expense[] = [];
+      if (isTravel) {
+        const sameDate = await db.expenses.where('date').equals(expense.date).toArray();
+        travelExpenses = sameDate
+          .filter((item) => Boolean(item.travelDetails))
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        if (!travelExpenses.some((item) => item.id === expense.id)) {
+          travelExpenses = [expense, ...travelExpenses];
+        }
+      }
+
+      return { expense, category, isTravel, travelExpenses };
+    },
+    [id],
+    undefined,
+  );
 
   const categoryName = data?.category?.name ?? 'অন্যান্য';
   const userName = user?.name ?? 'ব্যবহারকারী';
-
-  const printVoucher = useCallback(async () => {
-    if (!data) return;
-    if (isNativeApp()) {
-      if (!pdfRef.current || pdfBusy) return;
-      setPdfBusy(true);
-      try {
-        await downloadVoucherPdf(pdfRef.current, data.expense, {
-          dialogTitle: 'প্রিন্ট করার অ্যাপ বেছে নিন',
-        });
-        toast.toast('PDF তৈরি হয়েছে। প্রিন্টারের জন্য উপযুক্ত অ্যাপ বেছে নিন।', 'info');
-      } catch (error) {
-        console.error(error);
-        toast.error('প্রিন্ট ফাইল তৈরি করা যায়নি। আবার চেষ্টা করুন।');
-      } finally {
-        setPdfBusy(false);
-      }
-      return;
-    }
-    const previousTitle = document.title;
-    document.title = `MyVoucher-Voucher-${data.expense.date}`;
-    window.print();
-    window.setTimeout(() => {
-      document.title = previousTitle;
-    }, 1000);
-  }, [data, pdfBusy, toast]);
+  const isTravel = Boolean(data?.isTravel);
 
   const downloadPdf = useCallback(async () => {
     if (!data || !pdfRef.current || pdfBusy) return;
+    const { expense } = data;
     setPdfBusy(true);
     try {
-      const delivery = await downloadVoucherPdf(pdfRef.current, data.expense);
+      const delivery = await downloadVoucherPdf(pdfRef.current, {
+        filename: isTravel
+          ? `MyVoucher-Travel-${expense.date}.pdf`
+          : `MyVoucher-${expense.date}-A4.pdf`,
+        layout: isTravel ? 'a4-portrait' : 'a4-landscape-duplicate',
+        dialogTitle: 'PDF সংরক্ষণ বা শেয়ার করুন',
+      });
       toast.success(
         delivery === 'shared'
           ? 'PDF তৈরি হয়েছে। সংরক্ষণ বা শেয়ার করার অ্যাপ বেছে নিন।'
-          : 'ভাউচারের PDF ডাউনলোড হয়েছে।',
+          : isTravel
+            ? 'যাতায়াত ভাউচারের PDF ডাউনলোড হয়েছে।'
+            : 'A4 ল্যান্ডস্কেপে দুই কপি ভাউচারের PDF ডাউনলোড হয়েছে।',
       );
     } catch (error) {
       console.error(error);
@@ -137,7 +145,19 @@ export function VoucherPage() {
     } finally {
       setPdfBusy(false);
     }
-  }, [data, pdfBusy, toast]);
+  }, [data, isTravel, pdfBusy, toast]);
+
+  const printVoucher = useCallback(async () => {
+    if (!data) return;
+    if (isNativeApp()) {
+      await downloadPdf();
+      if (!pdfBusy) {
+        toast.toast('PDF তৈরি হয়েছে। প্রিন্টারের জন্য উপযুক্ত অ্যাপ বেছে নিন।', 'info');
+      }
+      return;
+    }
+    printInLayout(isTravel ? 'a4-portrait' : 'a4-landscape');
+  }, [data, downloadPdf, isTravel, pdfBusy, toast]);
 
   useEffect(() => {
     const action = searchParams.get('action');
@@ -179,14 +199,19 @@ export function VoucherPage() {
     );
   }
 
-  const { expense } = data;
+  const { expense, travelExpenses } = data;
+  const voucherExpenses = travelExpenses.length > 0 ? travelExpenses : [expense];
 
   return (
     <div className="animate-fade-up">
       <PageHeader
         eyebrow="ভাউচার প্রিভিউ"
-        title="A5 ভাউচার"
-        description="চূড়ান্ত প্রিন্টের সঙ্গে মিলিয়ে প্রিভিউ। ভাউচার সবসময় সংশ্লিষ্ট খরচের হালনাগাদ তথ্য দেখায়।"
+        title={isTravel ? 'A4 যাতায়াত ভাউচার' : 'A5 ভাউচার'}
+        description={
+          isTravel
+            ? 'একই তারিখের সব যাতায়াত খরচ একটি A4 পোর্ট্রেট সারণিতে একসঙ্গে আসে। প্রিভিউ, PDF ও প্রিন্ট একই তথ্য দেখায়।'
+            : 'চূড়ান্ত প্রিন্টের সঙ্গে মিলিয়ে প্রিভিউ। প্রিন্ট ও PDF-এ A4 ল্যান্ডস্কেপে পাশাপাশি দুই কপি থাকে, কেটে ব্যবহার করা যায়।'
+        }
         actions={
           <>
             <button
@@ -212,45 +237,73 @@ export function VoucherPage() {
         }
       />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,780px)_300px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,820px)_300px]">
         <section className="rounded-xl2 border border-line bg-[#d7d0c2] p-3 shadow-inner dark:bg-[#09110e] sm:p-6">
-          <div className="mb-3 flex items-center justify-between px-1">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
             <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-[#4f554f] dark:text-muted">
-              <FileText size={13} /> A5 · ১৪৮ × ২১০ মিমি
+              {isTravel ? <FileSpreadsheet size={13} /> : <FileText size={13} />}
+              {isTravel ? 'A4 · ২১০ × ২৯৭ মিমি' : 'A5 · ১৪৮ × ২১০ মিমি'}
             </span>
             <span className="rounded-full bg-black/10 px-2 py-0.5 text-[10px] font-semibold text-[#3d433e] dark:bg-white/10 dark:text-muted">
-              পোর্ট্রেট
+              {isTravel ? 'পোর্ট্রেট · সব যাত্রা একসঙ্গে' : 'প্রিন্টে A4 ল্যান্ডস্কেপ · ২ কপি'}
             </span>
           </div>
-          <ScaledVoucher>
-            <VoucherDocument
-              expense={expense}
-              categoryName={categoryName}
-              userName={userName}
-            />
-          </ScaledVoucher>
+          <ScaledSheet>
+            {isTravel ? (
+              <TravelVoucherDocument
+                expenses={voucherExpenses}
+                categoryName={categoryName}
+                userName={userName}
+              />
+            ) : (
+              <VoucherDocument
+                expense={expense}
+                categoryName={categoryName}
+                userName={userName}
+              />
+            )}
+          </ScaledSheet>
         </section>
 
         <aside className="space-y-3">
           <div className="card p-4">
             <h2 className="font-display text-base font-bold">প্রিন্টের জন্য প্রস্তুত</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] leading-6 text-muted">
-              <li className="flex gap-2">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                A5 পোর্ট্রেট, ১৪৮ × ২১০ মিমি।
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                PDF তৈরি সম্পূর্ণ অফলাইনে হয়, বাংলা ফন্ট অ্যাপের সঙ্গে বান্ডল করা।
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                PDF ডাউনলোডে বাংলা লেখা ছবি হিসেবে রেন্ডার হয়, ফলে যেকোনো ডিভাইসে দেখা যায়।
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                প্রিন্টে শুধু ভাউচার যাবে; অ্যাপের মেনু ও বোতাম বাদ যাবে।
-              </li>
+              {isTravel ? (
+                <>
+                  <li className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                    A4 পোর্ট্রেট, ২১০ × ২৯৭ মিমি।
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                    একই তারিখের {voucherExpenses.length}টি যাত্রা একটি সারণিতে একসঙ্গে।
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                    PDF তৈরি সম্পূর্ণ অফলাইনে হয়, বাংলা ফন্ট অ্যাপের সঙ্গে বান্ডল করা।
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                    A5 পোর্ট্রেট প্রিভিউ, ১৪৮ × ২১০ মিমি।
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                    প্রিন্ট ও PDF-এ A4 ল্যান্ডস্কেপে পাশাপাশি দুই কপি।
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                    PDF তৈরি সম্পূর্ণ অফলাইনে হয়, বাংলা ফন্ট অ্যাপের সঙ্গে বান্ডল করা।
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                    প্রিন্টে শুধু ভাউচার যাবে; অ্যাপের মেনু ও বোতাম বাদ যাবে।
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
@@ -259,12 +312,20 @@ export function VoucherPage() {
             <dl className="mt-2 space-y-1.5 text-[11.5px]">
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">তারিখ</dt>
-                <dd className="font-medium">{formatVoucherDate(expense.date)}</dd>
+                <dd className="font-medium">
+                  {isTravel ? formatDateBn(expense.date) : formatVoucherDate(expense.date)}
+                </dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">খাত</dt>
                 <dd className="truncate font-medium">{categoryName}</dd>
               </div>
+              {isTravel && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted">যাত্রা</dt>
+                  <dd className="font-medium">{voucherExpenses.length}টি</dd>
+                </div>
+              )}
             </dl>
             <p className="mt-3 border-t border-accent/20 pt-2.5 text-[10.5px] leading-5 text-muted">
               খরচ সম্পাদনা করলে এই ভাউচারও সঙ্গে সঙ্গে হালনাগাদ হবে।
@@ -278,14 +339,33 @@ export function VoucherPage() {
       </div>
 
       {createPortal(
-        <div className="print-only" aria-hidden="true">
-          <VoucherDocument expense={expense} categoryName={categoryName} userName={userName} />
-        </div>,
+        isTravel ? (
+          <div className="print-only print-sheet print-sheet-portrait" aria-hidden="true">
+            <TravelVoucherDocument
+              expenses={voucherExpenses}
+              categoryName={categoryName}
+              userName={userName}
+            />
+          </div>
+        ) : (
+          <div className="print-only print-sheet print-sheet-landscape" aria-hidden="true">
+            <VoucherDocument expense={expense} categoryName={categoryName} userName={userName} />
+            <VoucherDocument expense={expense} categoryName={categoryName} userName={userName} />
+          </div>
+        ),
         document.body,
       )}
 
       <div ref={pdfRef} className="pdf-render-wrap pdf-only" aria-hidden="true">
-        <VoucherDocument expense={expense} categoryName={categoryName} userName={userName} />
+        {isTravel ? (
+          <TravelVoucherDocument
+            expenses={voucherExpenses}
+            categoryName={categoryName}
+            userName={userName}
+          />
+        ) : (
+          <VoucherDocument expense={expense} categoryName={categoryName} userName={userName} />
+        )}
       </div>
     </div>
   );

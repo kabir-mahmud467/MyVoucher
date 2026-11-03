@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   ArrowDownToLine,
   BadgeCheck,
@@ -60,6 +61,9 @@ export function InstallPage() {
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const toast = useToast();
   const native = isNativeApp();
+
+  // The Android build ships without any installation instructions.
+  if (native) return <Navigate to="/" replace />;
 
   const handleInstall = async () => {
     const result = await promptInstall();

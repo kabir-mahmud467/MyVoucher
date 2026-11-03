@@ -31,12 +31,14 @@ import { validateUserName } from '../lib/validation';
 import { APP_ID, APP_VERSION } from '../lib/constants';
 import { formatNumber } from '../lib/format';
 import { formatDateTimeBn } from '../lib/dates';
+import { isNativeApp } from '../lib/native';
 
 export function SettingsPage() {
   const { user } = useProfile();
   const { theme, setTheme } = useTheme();
   const toast = useToast();
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
+  const native = isNativeApp();
   const [nameModalOpen, setNameModalOpen] = useState(false);
   const [name, setName] = useState(user?.name ?? '');
   const [nameError, setNameError] = useState('');
@@ -104,7 +106,11 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="সেটিংস"
         title="অ্যাপ সেটিংস"
-        description="আপনার প্রোফাইল, চেহারা, ইনস্টলেশন ও ডেটা সংক্রান্ত তথ্য এখানে নিয়ন্ত্রণ করুন।"
+        description={
+          native
+            ? 'আপনার প্রোফাইল, চেহারা ও ডেটা সংক্রান্ত তথ্য এখানে নিয়ন্ত্রণ করুন।'
+            : 'আপনার প্রোফাইল, চেহারা, ইনস্টলেশন ও ডেটা সংক্রান্ত তথ্য এখানে নিয়ন্ত্রণ করুন।'
+        }
       />
 
       <div className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
@@ -182,38 +188,44 @@ export function SettingsPage() {
             </div>
           </section>
 
-          <section className="card p-5">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                <Smartphone size={19} />
-              </span>
-              <div className="flex-1">
-                <h2 className="font-display text-lg font-bold">অ্যাপ ইনস্টলেশন</h2>
-                <p className="mt-1 text-[11.5px] leading-6 text-muted">
-                  PWA হিসেবে ইনস্টল করলে হোম স্ক্রিন থেকে অফলাইনে খোলা যাবে। Android APK-এর জন্য
-                  ইনস্টল পৃষ্ঠার নির্দেশনা দেখুন।
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {isInstalled ? (
-                    <span className="chip border-primary/20 bg-primary-soft text-primary">
-                      <BadgeCheck size={13} /> ইনস্টল করা আছে
-                    </span>
-                  ) : canInstall ? (
-                    <button type="button" className="btn btn-primary h-9 min-h-0 text-[12px]" onClick={() => void handleInstall()}>
-                      <Download size={14} /> এখনই ইনস্টল করুন
-                    </button>
-                  ) : (
-                    <span className="chip">
-                      <Laptop size={13} /> ব্রাউজারের ইনস্টল মেনু ব্যবহার করুন
-                    </span>
-                  )}
-                  <Link to="/install" className="btn btn-secondary h-9 min-h-0 text-[12px]">
-                    ইনস্টল নির্দেশনা <ArrowRight size={13} />
-                  </Link>
+          {!native && (
+            <section className="card p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                  <Smartphone size={19} />
+                </span>
+                <div className="flex-1">
+                  <h2 className="font-display text-lg font-bold">অ্যাপ ইনস্টলেশন</h2>
+                  <p className="mt-1 text-[11.5px] leading-6 text-muted">
+                    PWA হিসেবে ইনস্টল করলে হোম স্ক্রিন থেকে অফলাইনে খোলা যাবে। Android APK-এর জন্য
+                    ইনস্টল পৃষ্ঠার নির্দেশনা দেখুন।
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {isInstalled ? (
+                      <span className="chip border-primary/20 bg-primary-soft text-primary">
+                        <BadgeCheck size={13} /> ইনস্টল করা আছে
+                      </span>
+                    ) : canInstall ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary h-9 min-h-0 text-[12px]"
+                        onClick={() => void handleInstall()}
+                      >
+                        <Download size={14} /> এখনই ইনস্টল করুন
+                      </button>
+                    ) : (
+                      <span className="chip">
+                        <Laptop size={13} /> ব্রাউজারের ইনস্টল মেনু ব্যবহার করুন
+                      </span>
+                    )}
+                    <Link to="/install" className="btn btn-secondary h-9 min-h-0 text-[12px]">
+                      ইনস্টল নির্দেশনা <ArrowRight size={13} />
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           <section className="card p-5">
             <div className="flex items-start gap-3">

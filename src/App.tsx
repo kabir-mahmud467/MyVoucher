@@ -14,8 +14,10 @@ import { VoucherPage } from './pages/VoucherPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { BackupPage } from './pages/BackupPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { TravelLogPage } from './pages/TravelLogPage';
 import { InstallPage } from './pages/InstallPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { isNativeApp } from './lib/native';
 
 function AppRoutes() {
   const { user, loading } = useProfile();
@@ -38,12 +40,13 @@ function AppRoutes() {
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
           <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="travel" element={<TravelLogPage />} />
           <Route path="vouchers" element={<VouchersPage />} />
           <Route path="vouchers/:id" element={<VoucherPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="backup" element={<BackupPage />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="install" element={<InstallPage />} />
+          {!isNativeApp() && <Route path="install" element={<InstallPage />} />}
           <Route path="onboarding" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

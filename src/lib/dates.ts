@@ -1,6 +1,6 @@
 import { toBengaliDigits } from './format';
 
-const BENGALI_MONTHS = [
+export const BENGALI_MONTHS = [
   'জানুয়ারি',
   'ফেব্রুয়ারি',
   'মার্চ',
@@ -53,6 +53,16 @@ export function parseISODate(value: string): Date | null {
 
 export function isValidISODate(value: string): boolean {
   return parseISODate(value) !== null;
+}
+
+/** Number of days in a 1-based month for a given year. */
+export function daysInMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+/** Clamp a day to a valid calendar day for the given year and month. */
+export function clampDay(year: number, month: number, day: number): number {
+  return Math.min(Math.max(Math.trunc(day) || 1, 1), daysInMonth(year, month));
 }
 
 export function formatVoucherDate(value: string): string {

@@ -15,7 +15,7 @@ import { db } from '../../db/database';
 import { createExpense, updateExpense } from '../../db/expenseService';
 import type { CalculationMode, Expense, TravelDetails } from '../../db/types';
 import { Modal } from '../ui/Modal';
-import { DateInput } from '../ui/DateInput';
+import { ManualDateInput } from '../ui/ManualDateInput';
 import { useToast } from '../../providers/ToastProvider';
 import { todayISO } from '../../lib/dates';
 import { formatCurrency, parseNumericInput } from '../../lib/format';
@@ -298,7 +298,7 @@ function ExpenseDialog({
               <label className="field-label" htmlFor="expense-date">
                 তারিখ <span className="text-danger">*</span>
               </label>
-              <DateInput
+              <ManualDateInput
                 id="expense-date"
                 value={values.date}
                 onChange={(value) => update('date', value)}

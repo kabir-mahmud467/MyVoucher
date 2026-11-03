@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeftRight,
+  Bus,
   LayoutDashboard,
   ReceiptText,
   Settings,
@@ -13,6 +14,7 @@ import { Brand } from '../ui/Logo';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useProfile } from '../../providers/ProfileProvider';
 import { formatLongDateBn } from '../../lib/dates';
+import { isNativeApp } from '../../lib/native';
 import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 
 interface NavItem {
@@ -26,6 +28,7 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { to: '/', label: 'ড্যাশবোর্ড', shortLabel: 'হোম', icon: LayoutDashboard, end: true },
   { to: '/expenses', label: 'খরচের হিসাব', shortLabel: 'খরচ', icon: Table2 },
+  { to: '/travel', label: 'যাতায়াত লগ', shortLabel: 'যাতায়াত', icon: Bus },
   { to: '/vouchers', label: 'ভাউচার', shortLabel: 'ভাউচার', icon: ReceiptText },
   { to: '/categories', label: 'খাত ব্যবস্থাপনা', shortLabel: 'খাত', icon: Tags },
   { to: '/backup', label: 'ব্যাকআপ ও রিস্টোর', shortLabel: 'ব্যাকআপ', icon: ArrowLeftRight },
@@ -50,6 +53,7 @@ export function AppShell() {
   const { user } = useProfile();
   const location = useLocation();
   const { canInstall } = useInstallPrompt();
+  const native = isNativeApp();
   const initial = user?.name.trim().charAt(0) ?? 'M';
 
   return (
@@ -89,22 +93,24 @@ export function AppShell() {
             );
           })}
 
-          <div className="pt-4">
-            <NavLink
-              to="/install"
-              className={`nav-link ${location.pathname === '/install' ? 'nav-link-active' : ''}`}
-            >
-              <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full border border-sidebar-muted/50 text-[10px]">
-                ↓
-              </span>
-              <span>অ্যাপ ইনস্টল</span>
-              {canInstall && (
-                <span className="ml-auto rounded-full bg-[#d9a069] px-1.5 py-0.5 text-[9px] font-bold text-[#12261f]">
-                  নতুন
+          {!native && (
+            <div className="pt-4">
+              <NavLink
+                to="/install"
+                className={`nav-link ${location.pathname === '/install' ? 'nav-link-active' : ''}`}
+              >
+                <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full border border-sidebar-muted/50 text-[10px]">
+                  ↓
                 </span>
-              )}
-            </NavLink>
-          </div>
+                <span>অ্যাপ ইনস্টল</span>
+                {canInstall && (
+                  <span className="ml-auto rounded-full bg-[#d9a069] px-1.5 py-0.5 text-[9px] font-bold text-[#12261f]">
+                    নতুন
+                  </span>
+                )}
+              </NavLink>
+            </div>
+          )}
         </nav>
 
         <div className="relative border-t border-white/10 p-3.5">
@@ -143,7 +149,7 @@ export function AppShell() {
             <span className="text-[11px] text-muted">বাংলাদেশ সময়</span>
           </div>
           <div className="flex items-center gap-1">
-            {canInstall && (
+            {!native && canInstall && (
               <NavLink
                 to="/install"
                 className="mr-1 hidden items-center gap-1.5 rounded-full border border-primary/25 bg-primary-soft px-3 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/15 sm:flex"
@@ -172,7 +178,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
         aria-label="মোবাইল মেনু"
       >
-        <div className="grid grid-cols-6 px-1">
+        <div className="grid grid-cols-7 px-1">
           {PRIMARY_NAV.map((item) => {
             const active = isNavActive(location.pathname, item);
             return (
