@@ -27,6 +27,7 @@ import { useToast } from '../providers/ToastProvider';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Modal } from '../components/ui/Modal';
+import { BackupPage } from './BackupPage';
 import { validateUserName } from '../lib/validation';
 import { APP_ID, APP_VERSION } from '../lib/constants';
 import { formatNumber } from '../lib/format';
@@ -239,12 +240,9 @@ export function SettingsPage() {
                 </div>
                 <p className="mt-1 text-[11.5px] leading-6 text-muted">
                   ক্লাউড ব্যাকআপ ভবিষ্যতে ঐচ্ছিকভাবে যুক্ত হবে। বর্তমানে MyVoucher সম্পূর্ণ অফলাইন
-                  এবং Google-এর সঙ্গে কোনো ডেটা শেয়ার করে না। JSON ব্যাকআপ ফাইল নিজে সংরক্ষণ
-                  করুন।
+                  এবং Google-এর সঙ্গে কোনো ডেটা শেয়ার করে না। নিচের ব্যাকআপ অংশ থেকে JSON ব্যাকআপ
+                  ফাইল নিজে সংরক্ষণ করুন।
                 </p>
-                <Link to="/backup" className="mt-3 inline-flex text-[11.5px] font-semibold text-primary hover:underline">
-                  JSON ব্যাকআপ নিন →
-                </Link>
               </div>
             </div>
           </section>
@@ -310,6 +308,19 @@ export function SettingsPage() {
           </section>
         </div>
       </div>
+
+      <section className="mt-5" id="backup">
+        <div className="mb-3 flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-soft text-primary">
+            <HardDrive size={17} />
+          </span>
+          <div>
+            <h2 className="font-display text-lg font-bold">ব্যাকআপ ও রিস্টোর</h2>
+            <p className="text-[11px] text-muted">JSON ব্যাকআপ, CSV এক্সপোর্ট ও ফাইল থেকে পুনরুদ্ধার।</p>
+          </div>
+        </div>
+        <BackupPage embedded />
+      </section>
 
       <Modal
         open={nameModalOpen}

@@ -94,9 +94,9 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={`relative max-h-[92dvh] w-full ${widthClass} animate-slide-up overflow-hidden rounded-t-2xl border border-line bg-surface shadow-lift sm:rounded-xl2`}
+        className={`relative flex max-h-[92dvh] w-full ${widthClass} animate-slide-up flex-col overflow-hidden rounded-t-2xl border border-line bg-surface shadow-lift sm:rounded-xl2`}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div>
             <h2 id={titleId} className="font-display text-xl font-bold text-ink">
               {title}
@@ -113,9 +113,9 @@ export function Modal({
             </button>
           )}
         </div>
-        <div className="max-h-[calc(92dvh-9rem)] overflow-y-auto px-5 py-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
         {footer && (
-          <div className="flex flex-col-reverse gap-2 border-t border-line bg-raised/35 px-5 py-3.5 sm:flex-row sm:justify-end">
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-line bg-raised/35 px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
             {footer}
           </div>
         )}

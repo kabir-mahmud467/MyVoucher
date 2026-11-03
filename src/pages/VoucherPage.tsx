@@ -27,7 +27,7 @@ import { TravelVoucherDocument } from '../components/vouchers/TravelVoucherDocum
 import { PageHeader } from '../components/ui/PageHeader';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { downloadVoucherPdf, printInLayout } from '../lib/pdf';
-import { formatDateBn, formatVoucherDate } from '../lib/dates';
+import { formatVoucherDate } from '../lib/dates';
 import { isNativeApp } from '../lib/native';
 
 function ScaledSheet({ children }: { children: ReactNode }) {
@@ -87,6 +87,7 @@ export function VoucherPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useProfile();
   const toast = useToast();
+  const native = isNativeApp();
   const pdfRef = useRef<HTMLDivElement>(null);
   const handledAction = useRef(false);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -101,10 +102,14 @@ export function VoucherPage() {
 
       let travelExpenses: Expense[] = [];
       if (isTravel) {
-        const sameDate = await db.expenses.where('date').equals(expense.date).toArray();
-        travelExpenses = sameDate
+        // One travel voucher holds every travel row, including other dates.
+        const all = await db.expenses.toArray();
+        travelExpenses = all
           .filter((item) => Boolean(item.travelDetails))
-          .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+          .sort(
+            (a, b) =>
+              a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt),
+          );
         if (!travelExpenses.some((item) => item.id === expense.id)) {
           travelExpenses = [expense, ...travelExpenses];
         }
@@ -123,21 +128,28 @@ export function VoucherPage() {
   const downloadPdf = useCallback(async () => {
     if (!data || !pdfRef.current || pdfBusy) return;
     const { expense } = data;
+    // Capture the paper itself, not its transparent off-screen wrapper.
+    // html2canvas applies the wrapper's opacity to the result and can
+    // otherwise produce a blank page.
+    const target =
+      (pdfRef.current.firstElementChild as HTMLElement | null) ?? pdfRef.current;
     setPdfBusy(true);
     try {
-      const delivery = await downloadVoucherPdf(pdfRef.current, {
+      const delivery = await downloadVoucherPdf(target, {
         filename: isTravel
           ? `MyVoucher-Travel-${expense.date}.pdf`
           : `MyVoucher-${expense.date}-A4.pdf`,
-        layout: isTravel ? 'a4-portrait' : 'a4-landscape-duplicate',
+        layout: isTravel ? 'a4-portrait' : 'a4-landscape-single',
         dialogTitle: 'PDF সংরক্ষণ বা শেয়ার করুন',
       });
       toast.success(
-        delivery === 'shared'
-          ? 'PDF তৈরি হয়েছে। সংরক্ষণ বা শেয়ার করার অ্যাপ বেছে নিন।'
-          : isTravel
-            ? 'যাতায়াত ভাউচারের PDF ডাউনলোড হয়েছে।'
-            : 'A4 ল্যান্ডস্কেপে দুই কপি ভাউচারের PDF ডাউনলোড হয়েছে।',
+        delivery === 'saved'
+          ? 'PDF ফোনের Documents/MyVoucher ফোল্ডারে সংরক্ষিত হয়েছে।'
+          : delivery === 'shared'
+            ? 'PDF তৈরি হয়েছে। সংরক্ষণ বা শেয়ার করার অ্যাপ বেছে নিন।'
+            : isTravel
+              ? 'যাতায়াত ভাউচারের PDF ডাউনলোড হয়েছে।'
+              : 'একটি A5 ভাউচারের PDF ডাউনলোড হয়েছে। ভাউচার তালিকা থেকে “সব ভাউচার PDF” নিলে প্রতি A4 পাতায় দুটি আলাদা ভাউচার পাশাপাশি আসবে।',
       );
     } catch (error) {
       console.error(error);
@@ -209,8 +221,8 @@ export function VoucherPage() {
         title={isTravel ? 'A4 যাতায়াত ভাউচার' : 'A5 ভাউচার'}
         description={
           isTravel
-            ? 'একই তারিখের সব যাতায়াত খরচ একটি A4 পোর্ট্রেট সারণিতে একসঙ্গে আসে। প্রিভিউ, PDF ও প্রিন্ট একই তথ্য দেখায়।'
-            : 'চূড়ান্ত প্রিন্টের সঙ্গে মিলিয়ে প্রিভিউ। প্রিন্ট ও PDF-এ A4 ল্যান্ডস্কেপে পাশাপাশি দুই কপি থাকে, কেটে ব্যবহার করা যায়।'
+            ? 'সব তারিখের যাতায়াত খরচ একটি A4 পোর্ট্রেট সারণিতে পরপর নতুন সারি হিসেবে একসঙ্গে আসে। প্রিভিউ, PDF ও প্রিন্ট একই তথ্য দেখায়।'
+            : 'চূড়ান্ত প্রিন্টের সঙ্গে মিলিয়ে প্রিভিউ। PDF-এ একটিমাত্র A5 ভাউচার থাকে; ভাউচার তালিকা থেকে “সব ভাউচার PDF” নিলে প্রতি A4 পাতায় দুটি আলাদা ভাউচার পাশাপাশি আসে।'
         }
         actions={
           <>
@@ -230,13 +242,19 @@ export function VoucherPage() {
               {pdfBusy ? <LoaderCircle size={16} className="animate-spin" /> : <Download size={16} />}
               {pdfBusy ? 'তৈরি হচ্ছে…' : 'PDF ডাউনলোড'}
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => void printVoucher()} disabled={pdfBusy}>
-              <Printer size={16} /> প্রিন্ট
-            </button>
+            {!native && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void printVoucher()}
+                disabled={pdfBusy}
+              >
+                <Printer size={16} /> প্রিন্ট
+              </button>
+            )}
           </>
         }
       />
-
       <div className="grid gap-5 xl:grid-cols-[minmax(0,820px)_300px]">
         <section className="rounded-xl2 border border-line bg-[#d7d0c2] p-3 shadow-inner dark:bg-[#09110e] sm:p-6">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
@@ -245,7 +263,7 @@ export function VoucherPage() {
               {isTravel ? 'A4 · ২১০ × ২৯৭ মিমি' : 'A5 · ১৪৮ × ২১০ মিমি'}
             </span>
             <span className="rounded-full bg-black/10 px-2 py-0.5 text-[10px] font-semibold text-[#3d433e] dark:bg-white/10 dark:text-muted">
-              {isTravel ? 'পোর্ট্রেট · সব যাত্রা একসঙ্গে' : 'প্রিন্টে A4 ল্যান্ডস্কেপ · ২ কপি'}
+              {isTravel ? 'পোর্ট্রেট · সব যাত্রা একসঙ্গে' : 'A4 ল্যান্ডস্কেপ · একটি ভাউচার'}
             </span>
           </div>
           <ScaledSheet>
@@ -277,7 +295,7 @@ export function VoucherPage() {
                   </li>
                   <li className="flex gap-2">
                     <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                    একই তারিখের {voucherExpenses.length}টি যাত্রা একটি সারণিতে একসঙ্গে।
+                    সব তারিখের {voucherExpenses.length}টি যাত্রা একটি সারণিতে পরপর।
                   </li>
                   <li className="flex gap-2">
                     <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
@@ -292,7 +310,7 @@ export function VoucherPage() {
                   </li>
                   <li className="flex gap-2">
                     <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                    প্রিন্ট ও PDF-এ A4 ল্যান্ডস্কেপে পাশাপাশি দুই কপি।
+                    প্রিন্ট ও PDF-এ একটি A5 ভাউচার A4 ল্যান্ডস্কেপে বসে।
                   </li>
                   <li className="flex gap-2">
                     <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
@@ -313,7 +331,7 @@ export function VoucherPage() {
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">তারিখ</dt>
                 <dd className="font-medium">
-                  {isTravel ? formatDateBn(expense.date) : formatVoucherDate(expense.date)}
+                  {isTravel ? 'সব তারিখ' : formatVoucherDate(expense.date)}
                 </dd>
               </div>
               <div className="flex justify-between gap-3">
@@ -349,7 +367,6 @@ export function VoucherPage() {
           </div>
         ) : (
           <div className="print-only print-sheet print-sheet-landscape" aria-hidden="true">
-            <VoucherDocument expense={expense} categoryName={categoryName} userName={userName} />
             <VoucherDocument expense={expense} categoryName={categoryName} userName={userName} />
           </div>
         ),

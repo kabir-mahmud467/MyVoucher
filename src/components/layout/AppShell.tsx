@@ -1,7 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  ArrowLeftRight,
-  Bus,
   LayoutDashboard,
   ReceiptText,
   Settings,
@@ -28,10 +26,8 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { to: '/', label: 'ড্যাশবোর্ড', shortLabel: 'হোম', icon: LayoutDashboard, end: true },
   { to: '/expenses', label: 'খরচের হিসাব', shortLabel: 'খরচ', icon: Table2 },
-  { to: '/travel', label: 'যাতায়াত লগ', shortLabel: 'যাতায়াত', icon: Bus },
   { to: '/vouchers', label: 'ভাউচার', shortLabel: 'ভাউচার', icon: ReceiptText },
   { to: '/categories', label: 'খাত ব্যবস্থাপনা', shortLabel: 'খাত', icon: Tags },
-  { to: '/backup', label: 'ব্যাকআপ ও রিস্টোর', shortLabel: 'ব্যাকআপ', icon: ArrowLeftRight },
   { to: '/settings', label: 'সেটিংস', shortLabel: 'সেটিংস', icon: Settings },
 ];
 
@@ -178,7 +174,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
         aria-label="মোবাইল মেনু"
       >
-        <div className="grid grid-cols-7 px-1">
+        <div className="grid grid-cols-5 px-1">
           {PRIMARY_NAV.map((item) => {
             const active = isNavActive(location.pathname, item);
             return (

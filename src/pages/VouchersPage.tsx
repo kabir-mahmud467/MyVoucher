@@ -1,15 +1,30 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Download, Eye, Filter, Plus, Printer, ReceiptText, Search, X } from 'lucide-react';
+import {
+  Download,
+  Eye,
+  Filter,
+  LoaderCircle,
+  Plus,
+  Printer,
+  ReceiptText,
+  Search,
+  X,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { db } from '../db/database';
 import type { Category, Expense } from '../db/types';
 import { PageHeader } from '../components/ui/PageHeader';
 import { DateInput } from '../components/ui/DateInput';
 import { EmptyState } from '../components/ui/EmptyState';
+import { VoucherDocument } from '../components/vouchers/VoucherDocument';
 import { useExpenseEditor } from '../components/expenses/ExpenseEditor';
+import { useProfile } from '../providers/ProfileProvider';
+import { useToast } from '../providers/ToastProvider';
 import { formatCurrency, formatNumber, truncate } from '../lib/format';
 import { formatDateBn } from '../lib/dates';
+import { isNativeApp } from '../lib/native';
+import { downloadBatchVoucherPdf } from '../lib/pdf';
 
 function filterVouchers(
   expenses: Expense[],
@@ -40,6 +55,11 @@ export function VouchersPage() {
     return { expenses, categories };
   }, []);
   const { openCreate } = useExpenseEditor();
+  const { user } = useProfile();
+  const toast = useToast();
+  const native = isNativeApp();
+  const batchNodes = useRef(new Map<string, HTMLDivElement>());
+  const [batchBusy, setBatchBusy] = useState(false);
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [categoryId, setCategoryId] = useState('');
@@ -65,9 +85,39 @@ export function VouchersPage() {
   }, [data, categoryMap, deferredSearch, categoryId, fromDate, toDate]);
 
   const total = filtered.reduce((sum, expense) => sum + expense.totalAmount, 0);
+  const normalExpenses = filtered.filter((expense) => !expense.travelDetails);
   const sortedCategories = [...(data?.categories ?? [])].sort(
     (a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name, 'bn'),
   );
+
+  const handleBatchDownload = async () => {
+    const elements = normalExpenses
+      .map((expense) => batchNodes.current.get(expense.id))
+      .filter((element): element is HTMLDivElement => Boolean(element));
+    if (elements.length === 0) {
+      toast.toast('PDF তৈরির জন্য কোনো সাধারণ ভাউচার নেই।', 'info');
+      return;
+    }
+    setBatchBusy(true);
+    try {
+      const delivery = await downloadBatchVoucherPdf(elements, {
+        filename: `MyVoucher-All-Vouchers-${new Date().toISOString().slice(0, 10)}.pdf`,
+        dialogTitle: 'সব ভাউচারের PDF সংরক্ষণ বা শেয়ার করুন',
+      });
+      toast.success(
+        delivery === 'saved'
+          ? 'PDF ফোনের Documents/MyVoucher ফোল্ডারে সংরক্ষিত হয়েছে।'
+          : delivery === 'shared'
+            ? 'PDF তৈরি হয়েছে। সংরক্ষণ বা শেয়ার করার অ্যাপ বেছে নিন।'
+            : 'প্রতি A4 পাতায় দুটি আলাদা ভাউচারসহ PDF ডাউনলোড হয়েছে।',
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error('ভাউচারগুলোর PDF তৈরি করা যায়নি। আবার চেষ্টা করুন।');
+    } finally {
+      setBatchBusy(false);
+    }
+  };
 
   const clearFilters = () => {
     setSearch('');
@@ -81,11 +131,26 @@ export function VouchersPage() {
       <PageHeader
         eyebrow="ভাউচার"
         title="ভাউচার তালিকা"
-        description="প্রতিটি খরচ থেকেই তৈরি হয় একটি আলাদা A5 ভাউচার। কোনো আলাদা ভাউচার রেকর্ড তৈরি হয় না — ভাউচার সবসময় খরচের তথ্য থেকেই আসে।"
+        description="প্রতিটি খরচ থেকেই তৈরি হয় একটি আলাদা A5 ভাউচার। “সব ভাউচার PDF” নিলে প্রতি A4 পাতায় দুটি আলাদা ভাউচার পাশাপাশি বসে।"
         actions={
-          <button type="button" className="btn btn-primary" onClick={openCreate}>
-            <Plus size={17} /> নতুন খরচ
-          </button>
+          <>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => void handleBatchDownload()}
+              disabled={batchBusy || normalExpenses.length === 0}
+            >
+              {batchBusy ? (
+                <LoaderCircle size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              {batchBusy ? 'PDF তৈরি হচ্ছে…' : 'সব ভাউচার PDF'}
+            </button>
+            <button type="button" className="btn btn-primary" onClick={openCreate}>
+              <Plus size={17} /> নতুন খরচ
+            </button>
+          </>
         }
       />
 
@@ -237,14 +302,16 @@ export function VouchersPage() {
                             >
                               <Download size={16} />
                             </Link>
-                            <Link
-                              to={`/vouchers/${expense.id}?action=print`}
-                              className="icon-btn"
-                              title="প্রিন্ট"
-                              aria-label={`${expense.description} — প্রিন্ট`}
-                            >
-                              <Printer size={16} />
-                            </Link>
+                            {!native && (
+                              <Link
+                                to={`/vouchers/${expense.id}?action=print`}
+                                className="icon-btn"
+                                title="প্রিন্ট"
+                                aria-label={`${expense.description} — প্রিন্ট`}
+                              >
+                                <Printer size={16} />
+                              </Link>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -275,7 +342,7 @@ export function VouchersPage() {
                         {formatCurrency(expense.totalAmount)}
                       </p>
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-1.5">
+                    <div className={`mt-3 grid gap-1.5 ${native ? 'grid-cols-2' : 'grid-cols-3'}`}>
                       <Link to={`/vouchers/${expense.id}`} className="btn btn-secondary h-8 min-h-0 text-[11px]">
                         <Eye size={13} /> দেখুন
                       </Link>
@@ -285,12 +352,14 @@ export function VouchersPage() {
                       >
                         <Download size={13} /> PDF
                       </Link>
-                      <Link
-                        to={`/vouchers/${expense.id}?action=print`}
-                        className="btn btn-secondary h-8 min-h-0 text-[11px]"
-                      >
-                        <Printer size={13} /> প্রিন্ট
-                      </Link>
+                      {!native && (
+                        <Link
+                          to={`/vouchers/${expense.id}?action=print`}
+                          className="btn btn-secondary h-8 min-h-0 text-[11px]"
+                        >
+                          <Printer size={13} /> প্রিন্ট
+                        </Link>
+                      )}
                     </div>
                   </article>
                 );
@@ -304,6 +373,25 @@ export function VouchersPage() {
         <span className="font-semibold text-ink">নোট:</span> ভাউচার আলাদা করে সংরক্ষণ করা হয় না।
         খরচ সম্পাদনা করলে তার ভাউচার প্রিভিউও হালনাগাদ তথ্য দেখায়।
       </p>
+
+      <div className="pdf-render-wrap pdf-only" aria-hidden="true">
+        {normalExpenses.map((expense) => (
+          <div
+            key={expense.id}
+            style={{ width: 'max-content' }}
+            ref={(node) => {
+              if (node) batchNodes.current.set(expense.id, node);
+              else batchNodes.current.delete(expense.id);
+            }}
+          >
+            <VoucherDocument
+              expense={expense}
+              categoryName={categoryMap.get(expense.categoryId)?.name ?? 'অন্যান্য'}
+              userName={user?.name ?? 'ব্যবহারকারী'}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

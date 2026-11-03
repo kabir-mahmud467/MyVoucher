@@ -6,6 +6,7 @@ import { deleteExpense } from '../db/expenseService';
 import type { Category, Expense } from '../db/types';
 import { useExpenseEditor } from '../components/expenses/ExpenseEditor';
 import { ExpenseTableRow } from '../components/expenses/ExpenseTableRow';
+import { TravelLedger } from '../components/expenses/TravelLedger';
 import { PageHeader } from '../components/ui/PageHeader';
 import { DateInput } from '../components/ui/DateInput';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -62,6 +63,7 @@ export function ExpensesPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [sort, setSort] = useState<SortKey>('newest');
+  const [view, setView] = useState<'all' | 'travel'>('all');
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -137,6 +139,33 @@ export function ExpensesPage() {
         }
       />
 
+      <div className="mb-4 flex items-center gap-1 rounded-lg border border-line bg-surface p-1 sm:w-fit">
+        <button
+          type="button"
+          onClick={() => setView('all')}
+          className={`flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-semibold transition-colors ${
+            view === 'all' ? 'bg-primary-soft text-primary' : 'text-muted hover:text-ink'
+          }`}
+          aria-pressed={view === 'all'}
+        >
+          <Table2 size={14} /> সব খরচ
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('travel')}
+          className={`flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-semibold transition-colors ${
+            view === 'travel' ? 'bg-primary-soft text-primary' : 'text-muted hover:text-ink'
+          }`}
+          aria-pressed={view === 'travel'}
+        >
+          যাতায়াত
+        </button>
+      </div>
+
+      {view === 'travel' ? (
+        <TravelLedger expenses={data?.expenses ?? []} loading={loading} />
+      ) : (
+        <>
       <section className="card overflow-hidden">
         <div className="border-b border-line bg-surface p-3.5 sm:p-4">
           <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[minmax(200px,1.5fr)_minmax(150px,1fr)_140px_140px_auto]">
@@ -324,6 +353,8 @@ export function ExpensesPage() {
         সরাসরি লিখুন। স্বয়ংক্রিয় মোডে পরিমাণ ও একক মূল্য থেকে মোট টাকা হিসাব হয়; একক মূল্য শুধু
         সম্পূর্ণ সম্পাদনা ফর্মে দেখা যায়, স্প্রেডশিটে আলাদা কলাম হিসেবে নয়।
       </div>
+        </>
+      )}
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

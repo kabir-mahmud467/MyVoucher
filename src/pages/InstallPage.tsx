@@ -271,7 +271,7 @@ export function InstallPage() {
             <p className="mt-2 text-[12px] leading-7 text-muted">
               অ্যাপ আনইনস্টল করলে, ফোনের অ্যাপ ডেটা ক্লিয়ার করলে, ব্রাউজারের “Clear site data”
               করলে অথবা ডিভাইস বদলালে স্থানীয় রেকর্ড হারিয়ে যেতে পারে। তাই নিয়মিত{' '}
-              <a href="/backup" className="font-semibold text-primary hover:underline">
+              <a href="/settings#backup" className="font-semibold text-primary hover:underline">
                 JSON ব্যাকআপ
               </a>{' '}
               ডাউনলোড করে নিরাপদ জায়গায় রাখুন। ব্যাকআপ ফাইল থেকেই সব তথ্য পুনরুদ্ধার করা যাবে।

@@ -31,18 +31,11 @@ export function TravelVoucherDocument({
     >
       <div className="travel-voucher-inner">
         <header className="travel-voucher-header">
-          <div>
-            <p className="travel-voucher-brand">MyVoucher</p>
-            <h1 className="travel-voucher-title">যাতায়াত ভাউচার</h1>
-          </div>
+          <h1 className="travel-voucher-title">যাতায়াত ভাউচার</h1>
           <div className="travel-voucher-meta">
             <p>
               <span>খাত: </span>
               <strong>{categoryName}</strong>
-            </p>
-            <p>
-              <span>তারিখ: </span>
-              <strong>{formatDateBn(firstDate)}</strong>
             </p>
           </div>
         </header>
@@ -98,15 +91,15 @@ export function TravelVoucherDocument({
           </tfoot>
         </table>
 
-        <p className="travel-voucher-note">
-          মোট {formatNumber(expenses.length)}টি যাত্রা · {formatNumber(totalPassengers)} জন যাত্রী ·
-          মোট {formatTaka(total)}
-        </p>
+        <div className="travel-voucher-total">
+          <span>মোট টাকা:</span>
+          <strong>{formatTaka(total)}</strong>
+        </div>
 
         <div className="travel-voucher-signature">
+          <p className="travel-voucher-signature-label">প্রস্তুতকারীর স্বাক্ষর</p>
           <div className="travel-voucher-signature-line" />
           <p className="travel-voucher-signature-name">{userName}</p>
-          <p className="travel-voucher-signature-label">প্রস্তুতকারীর স্বাক্ষর</p>
         </div>
       </div>
     </article>

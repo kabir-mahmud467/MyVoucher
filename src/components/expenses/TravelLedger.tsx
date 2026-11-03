@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
 import {
   Bus,
@@ -10,13 +9,11 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { db } from '../db/database';
-import type { Expense } from '../db/types';
-import { useExpenseEditor } from '../components/expenses/ExpenseEditor';
-import { PageHeader } from '../components/ui/PageHeader';
-import { EmptyState } from '../components/ui/EmptyState';
-import { formatCurrency, formatNumber } from '../lib/format';
-import { formatDateBn, formatVoucherDate } from '../lib/dates';
+import type { Expense } from '../../db/types';
+import { useExpenseEditor } from './ExpenseEditor';
+import { EmptyState } from '../ui/EmptyState';
+import { formatCurrency, formatNumber } from '../../lib/format';
+import { formatDateBn, formatVoucherDate } from '../../lib/dates';
 
 interface TravelGroup {
   date: string;
@@ -25,20 +22,18 @@ interface TravelGroup {
   passengers: number;
 }
 
-export function TravelLogPage() {
-  const data = useLiveQuery(async () => {
-    const [expenses, categories] = await Promise.all([
-      db.expenses.toArray(),
-      db.categories.toArray(),
-    ]);
-    return { expenses, categories };
-  }, []);
+export function TravelLedger({
+  expenses,
+  loading,
+}: {
+  expenses: Expense[];
+  loading: boolean;
+}) {
   const { openCreate, openEdit } = useExpenseEditor();
 
   const groups = useMemo<TravelGroup[]>(() => {
-    if (!data) return [];
     const map = new Map<string, Expense[]>();
-    for (const expense of data.expenses) {
+    for (const expense of expenses) {
       if (!expense.travelDetails) continue;
       const list = map.get(expense.date);
       if (list) list.push(expense);
@@ -47,16 +42,16 @@ export function TravelLogPage() {
 
     return Array.from(map.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
-      .map(([date, expenses]) => ({
+      .map(([date, groupExpenses]) => ({
         date,
-        expenses: [...expenses].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
-        total: expenses.reduce((sum, expense) => sum + expense.totalAmount, 0),
-        passengers: expenses.reduce(
+        expenses: [...groupExpenses].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+        total: groupExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0),
+        passengers: groupExpenses.reduce(
           (sum, expense) => sum + (expense.travelDetails?.passengers ?? 0),
           0,
         ),
       }));
-  }, [data]);
+  }, [expenses]);
 
   const overall = useMemo(
     () => ({
@@ -68,22 +63,9 @@ export function TravelLogPage() {
     [groups],
   );
 
-  const loading = data === undefined;
-
   return (
-    <div className="animate-fade-up">
-      <PageHeader
-        eyebrow="যাতায়াত লগ"
-        title="তারিখভিত্তিক যাতায়াত খরচ"
-        description="যে সব তারিখে যাতায়াত খরচ আছে, সব একসঙ্গে তারিখ অনুযায়ী সাজানো। প্রতিটি তারিখের সব যাত্রা স্বয়ংক্রিয়ভাবে এক ভাউচারে যুক্ত হয়।"
-        actions={
-          <button type="button" className="btn btn-primary" onClick={openCreate}>
-            <Plus size={17} /> নতুন খরচ
-          </button>
-        }
-      />
-
-      <div className="mb-4 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
         <div className="card flex items-center gap-3 p-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
             <CalendarDays size={18} />
@@ -267,9 +249,10 @@ export function TravelLogPage() {
         </div>
       )}
 
-      <p className="mt-3 rounded-lg border border-line/70 bg-surface/50 px-4 py-3 text-[11px] leading-6 text-muted">
-        <span className="font-semibold text-ink">ভাউচার:</span> যেকোনো তারিখের “ভাউচার” চাপলে সেই
-        তারিখের সব যাতায়াত একটি A4 পোর্ট্রেট ভাউচারে একসঙ্গে দেখা যাবে এবং PDF বা প্রিন্ট করা যাবে।
+      <p className="rounded-lg border border-line/70 bg-surface/50 px-4 py-3 text-[11px] leading-6 text-muted">
+        <span className="font-semibold text-ink">ভাউচার:</span> যেকোনো তারিখের “ভাউচার” চাপলে সব
+        তারিখের সব যাতায়াত একটি A4 পোর্ট্রেট ভাউচারে পরপর সারি হিসেবে একসঙ্গে দেখা যাবে এবং PDF বা
+        প্রিন্ট করা যাবে।
       </p>
     </div>
   );

@@ -38,7 +38,7 @@ import { APP_VERSION } from '../lib/constants';
 
 const MAX_BACKUP_SIZE = 25 * 1024 * 1024;
 
-export function BackupPage() {
+export function BackupPage({ embedded = false }: { embedded?: boolean } = {}) {
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exportBusy, setExportBusy] = useState(false);
@@ -184,14 +184,16 @@ export function BackupPage() {
     data && data.quota > 0 ? Math.min((data.usage / data.quota) * 100, 100) : null;
 
   return (
-    <div className="animate-fade-up">
-      <PageHeader
-        eyebrow="ব্যাকআপ ও রিস্টোর"
-        title="আপনার তথ্য সুরক্ষিত রাখুন"
-        description="সম্পূর্ণ ডেটাবেজ এক ফাইলে ব্যাকআপ নিন, প্রয়োজনে পুনরুদ্ধার করুন অথবা Excel-এ ব্যবহারের জন্য CSV ডাউনলোড করুন।"
-      />
+    <div className={embedded ? 'space-y-5' : 'animate-fade-up'}>
+      {!embedded && (
+        <PageHeader
+          eyebrow="ব্যাকআপ ও রিস্টোর"
+          title="আপনার তথ্য সুরক্ষিত রাখুন"
+          description="সম্পূর্ণ ডেটাবেজ এক ফাইলে ব্যাকআপ নিন, প্রয়োজনে পুনরুদ্ধার করুন অথবা Excel-এ ব্যবহারের জন্য CSV ডাউনলোড করুন।"
+        />
+      )}
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <div className="card p-4">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-soft text-primary">
             <Database size={17} />

@@ -1,13 +1,18 @@
 import { Capacitor } from '@capacitor/core';
 
-export type PdfDelivery = 'downloaded' | 'shared';
+export type PdfDelivery = 'downloaded' | 'shared' | 'saved';
 
 /**
  * a5                      – one A5 portrait sheet (single voucher)
  * a4-landscape-duplicate  – the same A5 voucher twice on an A4 landscape sheet
+ * a4-landscape-single     – one A5 portrait voucher on an A4 landscape sheet
  * a4-portrait             – one A4 portrait sheet (travel voucher table)
  */
-export type VoucherLayout = 'a5' | 'a4-landscape-duplicate' | 'a4-portrait';
+export type VoucherLayout =
+  | 'a5'
+  | 'a4-landscape-duplicate'
+  | 'a4-landscape-single'
+  | 'a4-portrait';
 
 interface DownloadOptions {
   filename: string;
@@ -16,23 +21,48 @@ interface DownloadOptions {
 }
 
 async function renderCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
-  await document.fonts.ready;
+  // WebView fonts can occasionally never resolve; never block PDF creation on it.
+  await Promise.race([
+    document.fonts.ready,
+    new Promise<void>((resolve) => window.setTimeout(resolve, 1500)),
+  ]);
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
-  const [{ default: html2canvas }] = await Promise.all([import('html2canvas')]);
+  if (!element.offsetWidth || !element.offsetHeight) {
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
+  }
 
-  return html2canvas(element, {
-    scale: 3,
-    backgroundColor: '#ffffff',
-    useCORS: true,
-    logging: false,
-    width: element.offsetWidth,
-    height: element.offsetHeight,
-    windowWidth: element.offsetWidth,
-    windowHeight: element.offsetHeight,
-    scrollX: 0,
-    scrollY: 0,
-  });
+  const [{ default: html2canvas }] = await Promise.all([import('html2canvas')]);
+  const native = Capacitor.isNativePlatform();
+  // Android WebView has tighter canvas memory limits, so start lower there.
+  const scales = native ? [2, 1.5, 1] : [3, 2, 1.5];
+
+  let lastError: unknown = null;
+  for (const scale of scales) {
+    try {
+      return await html2canvas(element, {
+        scale,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        imageTimeout: 0,
+        width: element.offsetWidth,
+        height: element.offsetHeight,
+        windowWidth: element.offsetWidth,
+        windowHeight: element.offsetHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
+    } catch (error) {
+      lastError = error;
+      console.warn(`PDF canvas render failed at scale ${scale}`, error);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('ভাউচারের ছবি তৈরি করা যায়নি।');
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -67,6 +97,19 @@ export async function createVoucherPdfBlob(
     return pdf.output('blob');
   }
 
+  if (layout === 'a4-landscape-single') {
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+    });
+    // One A5 voucher on A4 landscape. Batch downloads fill the other half
+    // with a different voucher instead of duplicating this one.
+    pdf.addImage(imageData, 'JPEG', 0.5, 0, 148, 210, undefined, 'FAST');
+    return pdf.output('blob');
+  }
+
   if (layout === 'a4-portrait') {
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -88,13 +131,11 @@ export async function createVoucherPdfBlob(
   return pdf.output('blob');
 }
 
-export async function downloadVoucherPdf(
-  element: HTMLElement,
-  options: DownloadOptions,
+async function deliverPdfBlob(
+  blob: Blob,
+  filename: string,
+  dialogTitle?: string,
 ): Promise<PdfDelivery> {
-  const { filename, layout = 'a5', dialogTitle } = options;
-  const blob = await createVoucherPdfBlob(element, layout);
-
   if (Capacitor.isNativePlatform()) {
     const [{ Filesystem, Directory }, { Share }] = await Promise.all([
       import('@capacitor/filesystem'),
@@ -107,13 +148,26 @@ export async function downloadVoucherPdf(
       directory: Directory.Cache,
       recursive: true,
     });
-    await Share.share({
-      title: 'MyVoucher ভাউচার',
-      text: 'MyVoucher ভাউচার — সংরক্ষণ বা প্রিন্ট করতে অ্যাপ নির্বাচন করুন।',
-      url: file.uri,
-      dialogTitle: dialogTitle ?? 'PDF সংরক্ষণ বা শেয়ার করুন',
-    });
-    return 'shared';
+    try {
+      await Share.share({
+        title: 'MyVoucher ভাউচার',
+        text: 'MyVoucher ভাউচার — সংরক্ষণ বা প্রিন্ট করতে অ্যাপ নির্বাচন করুন।',
+        url: file.uri,
+        dialogTitle: dialogTitle ?? 'PDF সংরক্ষণ বা শেয়ার করুন',
+      });
+      return 'shared';
+    } catch (error) {
+      // Some Android WebViews have no share target or reject the file URI.
+      // Keep the PDF accessible in Documents instead of failing outright.
+      console.warn('PDF share failed, saving to Documents', error);
+      await Filesystem.writeFile({
+        path: `MyVoucher/${filename}`,
+        data: base64,
+        directory: Directory.Documents,
+        recursive: true,
+      });
+      return 'saved';
+    }
   }
 
   const url = URL.createObjectURL(blob);
@@ -123,6 +177,73 @@ export async function downloadVoucherPdf(
   anchor.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1500);
   return 'downloaded';
+}
+
+export async function downloadVoucherPdf(
+  element: HTMLElement,
+  options: DownloadOptions,
+): Promise<PdfDelivery> {
+  const { filename, layout = 'a5', dialogTitle } = options;
+  const blob = await createVoucherPdfBlob(element, layout);
+  return deliverPdfBlob(blob, filename, dialogTitle);
+}
+
+/**
+ * Builds one PDF with an A5 voucher from each element. Two different
+ * vouchers share each A4 landscape sheet (side by side); a lone trailing
+ * voucher keeps the left half. The same voucher is never duplicated.
+ */
+export async function createBatchVoucherPdfBlob(elements: HTMLElement[]): Promise<Blob> {
+  if (elements.length === 0) {
+    throw new Error('কোনো ভাউচার নির্বাচিত হয়নি।');
+  }
+
+  const { jsPDF } = await import('jspdf');
+  const pdf = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4',
+    compress: true,
+  });
+
+  for (let index = 0; index < elements.length; index += 2) {
+    if (index > 0) pdf.addPage('a4', 'landscape');
+    const first = await renderCanvas(elements[index]);
+    pdf.addImage(
+      first.toDataURL('image/jpeg', 0.98),
+      'JPEG',
+      0.5,
+      0,
+      148,
+      210,
+      undefined,
+      'FAST',
+    );
+
+    const secondElement = elements[index + 1];
+    if (!secondElement) continue;
+    const second = await renderCanvas(secondElement);
+    pdf.addImage(
+      second.toDataURL('image/jpeg', 0.98),
+      'JPEG',
+      148.5,
+      0,
+      148,
+      210,
+      undefined,
+      'FAST',
+    );
+  }
+
+  return pdf.output('blob');
+}
+
+export async function downloadBatchVoucherPdf(
+  elements: HTMLElement[],
+  options: { filename: string; dialogTitle?: string },
+): Promise<PdfDelivery> {
+  const blob = await createBatchVoucherPdfBlob(elements);
+  return deliverPdfBlob(blob, options.filename, options.dialogTitle);
 }
 
 /**

@@ -311,7 +311,7 @@ export function DashboardPage() {
             IndexedDB-তে সংরক্ষিত। নিয়মিত ব্যাকআপ নিলে ডেটা হারানোর ঝুঁকি কমে।
           </p>
           <Link
-            to="/backup"
+            to="/settings#backup"
             className="shrink-0 text-[12px] font-semibold text-primary hover:underline"
           >
             ব্যাকআপ নিন →
