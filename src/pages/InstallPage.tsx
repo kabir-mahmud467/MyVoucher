@@ -17,6 +17,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { useToast } from '../providers/ToastProvider';
 import { APP_VERSION } from '../lib/constants';
+import { isNativeApp } from '../lib/native';
 
 type Tab = 'web' | 'android' | 'safety';
 
@@ -58,6 +59,7 @@ export function InstallPage() {
   const [tab, setTab] = useState<Tab>('web');
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const toast = useToast();
+  const native = isNativeApp();
 
   const handleInstall = async () => {
     const result = await promptInstall();
@@ -189,10 +191,17 @@ export function InstallPage() {
               APK-তে সম্পূর্ণ ফ্রন্টএন্ড বান্ডল করা। এটি ওয়েবসাইট লোড করে না।
             </p>
 
+            {native && (
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary-soft/50 p-4 text-[12.5px] leading-6 text-ink">
+                <BadgeCheck size={18} className="mt-0.5 shrink-0 text-primary" />
+                <span>আপনি MyVoucher APK সংস্করণ ব্যবহার করছেন। নতুন সংস্করণের জন্য আপডেট করা APK আবার ইনস্টল করুন।</span>
+              </div>
+            )}
+
             <a
               href="/downloads/MyVoucher-debug.apk"
               download
-              className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-primary/25 bg-primary-soft/50 p-4 transition-colors hover:bg-primary-soft"
+              className={`mt-4 flex items-center justify-between gap-4 rounded-xl border border-primary/25 bg-primary-soft/50 p-4 transition-colors hover:bg-primary-soft ${native ? 'hidden' : ''}`}
             >
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
